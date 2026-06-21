@@ -1,0 +1,250 @@
+CREATE DATABASE IF NOT EXISTS alesharah_attendance;
+USE alesharah_attendance;
+
+CREATE TABLE roles (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  description VARCHAR(255) NOT NULL DEFAULT ''
+);
+
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  role_id INT,
+  isActive BOOLEAN NOT NULL DEFAULT TRUE,
+  isSuperAdmin BOOLEAN NOT NULL DEFAULT FALSE,
+  FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL
+);
+
+CREATE TABLE departments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL UNIQUE,
+  description VARCHAR(255) NOT NULL DEFAULT ''
+);
+
+CREATE TABLE designations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL UNIQUE,
+  description VARCHAR(255) NOT NULL DEFAULT ''
+);
+
+CREATE TABLE employees (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(100) NOT NULL UNIQUE,
+  employeeCode VARCHAR(100) NOT NULL UNIQUE,
+  firstName VARCHAR(100) NOT NULL,
+  lastName VARCHAR(100) NOT NULL,
+  photo VARCHAR(255),
+  faceData TEXT,
+  fingerprintId VARCHAR(100),
+  fatherName VARCHAR(150),
+  motherName VARCHAR(150),
+  email VARCHAR(255),
+  phone VARCHAR(100),
+  nationalId VARCHAR(100),
+  gender VARCHAR(50),
+  dateOfBirth DATE,
+  joiningDate DATE,
+  endDate DATE,
+  employmentType VARCHAR(100),
+  salaryType VARCHAR(100),
+  basicSalary DECIMAL(10,2) NOT NULL DEFAULT 0,
+  houseRent DECIMAL(10,2) NOT NULL DEFAULT 0,
+  medical DECIMAL(10,2) NOT NULL DEFAULT 0,
+  transport DECIMAL(10,2) NOT NULL DEFAULT 0,
+  foodAllowance DECIMAL(10,2) NOT NULL DEFAULT 0,
+  attendanceBonus DECIMAL(10,2) NOT NULL DEFAULT 0,
+  overtimeRate DECIMAL(10,2) NOT NULL DEFAULT 0,
+  status BOOLEAN NOT NULL DEFAULT TRUE,
+  address VARCHAR(500),
+  emergencyContact VARCHAR(255),
+  bloodGroup VARCHAR(50),
+  profilePhoto VARCHAR(255),
+  department_id INT,
+  designation_id INT,
+  role_id INT,
+  user_id INT,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
+  FOREIGN KEY (designation_id) REFERENCES designations(id) ON DELETE SET NULL,
+  FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_employee_department (department_id),
+  INDEX idx_employee_designation (designation_id)
+);
+
+CREATE TABLE employee_faces (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employee_id INT NOT NULL,
+  embeddings LONGTEXT NOT NULL,
+  source VARCHAR(255),
+  isActive BOOLEAN NOT NULL DEFAULT TRUE,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE employee_fingerprints (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employee_id INT NOT NULL,
+  fingerprintId VARCHAR(100) NOT NULL UNIQUE,
+  deviceType VARCHAR(100),
+  source VARCHAR(255),
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE attendance_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employee_id INT NOT NULL,
+  date DATE NOT NULL,
+  checkIn DATETIME,
+  checkOut DATETIME,
+  workHours DECIMAL(5,2) NOT NULL DEFAULT 0,
+  lateMinutes INT NOT NULL DEFAULT 0,
+  earlyLeaveMinutes INT NOT NULL DEFAULT 0,
+  overtimeHours DECIMAL(5,2) NOT NULL DEFAULT 0,
+  status VARCHAR(50) NOT NULL DEFAULT 'present',
+  location VARCHAR(255),
+  deviceInfo VARCHAR(255),
+  verificationScreenshot VARCHAR(255),
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  INDEX idx_attendance_date (date),
+  INDEX idx_attendance_employee (employee_id)
+);
+
+CREATE TABLE attendance_images (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  attendance_id INT NOT NULL,
+  imageUrl VARCHAR(255),
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (attendance_id) REFERENCES attendance_logs(id) ON DELETE CASCADE
+);
+
+CREATE TABLE shifts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL UNIQUE,
+  startTime TIME NOT NULL,
+  endTime TIME NOT NULL,
+  graceTimeMinutes INT NOT NULL DEFAULT 0,
+  lateThresholdMinutes INT NOT NULL DEFAULT 0,
+  earlyLeaveThresholdMinutes INT NOT NULL DEFAULT 0,
+  isActive BOOLEAN NOT NULL DEFAULT TRUE,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE leave_types (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL UNIQUE,
+  description VARCHAR(255) NOT NULL DEFAULT '',
+  totalDays INT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE leave_requests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employee_id INT NOT NULL,
+  leave_type_id INT NOT NULL,
+  fromDate DATE NOT NULL,
+  toDate DATE NOT NULL,
+  totalDays INT NOT NULL DEFAULT 0,
+  status VARCHAR(50) NOT NULL DEFAULT 'pending',
+  reason TEXT,
+  approverRemarks TEXT,
+  approvedBy VARCHAR(150),
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY (leave_type_id) REFERENCES leave_types(id) ON DELETE CASCADE
+);
+
+CREATE TABLE holidays (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  date DATE NOT NULL,
+  description VARCHAR(255) NOT NULL DEFAULT '',
+  isActive BOOLEAN NOT NULL DEFAULT TRUE,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE salary_structures (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employee_id INT NOT NULL,
+  basicSalary DECIMAL(10,2) NOT NULL DEFAULT 0,
+  houseRent DECIMAL(10,2) NOT NULL DEFAULT 0,
+  medical DECIMAL(10,2) NOT NULL DEFAULT 0,
+  transport DECIMAL(10,2) NOT NULL DEFAULT 0,
+  foodAllowance DECIMAL(10,2) NOT NULL DEFAULT 0,
+  attendanceBonus DECIMAL(10,2) NOT NULL DEFAULT 0,
+  overtimeRate DECIMAL(10,2) NOT NULL DEFAULT 0,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE payrolls (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employee_id INT NOT NULL,
+  payrollDate DATE NOT NULL,
+  basicSalary DECIMAL(12,2) NOT NULL DEFAULT 0,
+  allowances DECIMAL(12,2) NOT NULL DEFAULT 0,
+  overtimeAmount DECIMAL(12,2) NOT NULL DEFAULT 0,
+  attendanceBonus DECIMAL(12,2) NOT NULL DEFAULT 0,
+  leaveDeduction DECIMAL(12,2) NOT NULL DEFAULT 0,
+  lateDeduction DECIMAL(12,2) NOT NULL DEFAULT 0,
+  advanceSalary DECIMAL(12,2) NOT NULL DEFAULT 0,
+  netPay DECIMAL(12,2) NOT NULL DEFAULT 0,
+  status VARCHAR(50) NOT NULL DEFAULT 'pending',
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE overtime_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employee_id INT NOT NULL,
+  date DATE NOT NULL,
+  hours DECIMAL(5,2) NOT NULL DEFAULT 0,
+  rate DECIMAL(12,2) NOT NULL DEFAULT 0,
+  amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+  status VARCHAR(50) NOT NULL DEFAULT 'approved',
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE notifications (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  recipient VARCHAR(255) NOT NULL,
+  channel VARCHAR(100) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  status VARCHAR(50) NOT NULL DEFAULT 'pending',
+  sentAt DATETIME,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE audit_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  entity VARCHAR(100) NOT NULL,
+  entityId VARCHAR(100) NOT NULL,
+  action VARCHAR(100) NOT NULL,
+  changes TEXT,
+  performedBy VARCHAR(150),
+  performedAt DATETIME,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+DELIMITER $$
+CREATE TRIGGER before_employee_update
+BEFORE UPDATE ON employees
+FOR EACH ROW
+BEGIN
+  INSERT INTO audit_logs (entity, entityId, action, changes, performedBy, performedAt)
+  VALUES ('employees', OLD.id, 'update', CONCAT('changed employee data from ', OLD.employeeCode, ' to ', NEW.employeeCode), 'system', NOW());
+END$$
+DELIMITER ;
